@@ -1,0 +1,45 @@
+name: Sync LinkedIn
+
+# Daily LinkedIn analytics sync via Unipile — runs sync_linkedin.py and commits
+# any update to voyager_dataset.json back to the repo.
+#
+# Schedule: 10:15 UTC = 07:15 São Paulo (UTC-3, no DST in Brazil since 2019).
+# Staggered 15 min after CMS sync to avoid pushing to the same branch concurrently.
+#
+# Credentials come from repo Secrets:
+#   UNIPILE_API_KEY     — Unipile API key, scope: Accounts — Read
+#   UNIPILE_ACCOUNT_ID  — connected LinkedIn account ID (EEK_a73PSnmQuRfdYNaAgQ)
+
+on:
+  schedule:
+    - cron: '15 10 * * *'  # 07:15 São Paulo
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run sync_linkedin.py
+        env:
+          UNIPILE_API_KEY:    ${{ secrets.UNIPILE_API_KEY }}
+          UNIPILE_ACCOUNT_ID: ${{ secrets.UNIPILE_ACCOUNT_ID }}
+        run: python sync_linkedin.py
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add voyager_dataset.json
+          git diff --cached --quiet || git commit -m "linkedin-sync $(date -u +'%Y-%m-%d')"
+          git push

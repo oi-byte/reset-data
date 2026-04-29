@@ -1,4 +1,6 @@
 lnkdin_pendientes.jsonl
 sync_cms_log.txt
 sync_cms_error.txt
+sync_log.txt
+sync_error.txt
 .DS_Store

@@ -1,0 +1,38 @@
+name: Sync CMS
+
+# Daily WordPress CMS sync — runs sync_cms.py and commits any updates to
+# posts.jsonl and cms_taxonomies.json back to the repo.
+#
+# Schedule: 10:00 UTC = 07:00 São Paulo (UTC-3, no DST in Brazil since 2019).
+# Cloud-resident replacement for the launchd job that used to run on Sérgio's Mac.
+
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 07:00 São Paulo
+  workflow_dispatch:        # also allow manual "Run workflow" from the Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # needed to push the data file updates back
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run sync_cms.py
+        run: python sync_cms.py
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add posts.jsonl cms_taxonomies.json
+          git diff --cached --quiet || git commit -m "cms-sync $(date -u +'%Y-%m-%d')"
+          git push
